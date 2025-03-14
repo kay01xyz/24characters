@@ -157,7 +157,7 @@
         category: "善良 (Kindness)",
         virtue: "人道 (Humanity)",
         questions: [
-          { id: "kindness_1", text: "我總是樂於幫助朋友一些小忙。", isReverse: false },
+          { id: "kindness_1", text: "我總是樂於主動幫助朋友一些小忙。", isReverse: false },
           { id: "kindness_2", text: "幫助朋友對我而言從不感到壓力。", isReverse: false },
           { id: "kindness_3", text: "我總是盡力去幫助有需要的人。", isReverse: false },
           { id: "kindness_4", text: "我相信每個人有自己的責任，很少幫助別人。", isReverse: true },
@@ -168,8 +168,8 @@
         virtue: "人道 (Humanity)",
         questions: [
           { id: "social_intel_1", text: "我總是懂得說出讓人們感覺美好的話。", isReverse: false },
-          { id: "social_intel_2", text: "我總是和我剛認識的人處得很好。", isReverse: false },
-          { id: "social_intel_3", text: "我擅於察覺別人的感受。", isReverse: false },
+          { id: "social_intel_2", text: "我總是和我剛認識的人相處得很好。", isReverse: false },
+          { id: "social_intel_3", text: "我總能和別人維持長久而深厚的關係。", isReverse: false },
           { id: "social_intel_4", text: "我能輕易體會他人所處的情境與想法。", isReverse: false },
         ],
       },
@@ -626,17 +626,29 @@
           acc[group.category] = { sum: 0, count: 0 };
           return acc;
         }, {});
+        
         allQuestions.forEach((q) => {
-          const userScore = answers[q.id];
+          let userScore = answers[q.id];
           if (typeof userScore === "number") {
+            // 處理反向題
+            const question = characterStrengthQuestions
+              .find(g => g.category === q.category)
+              ?.questions.find(item => item.id === q.id);
+            
+            if (question && question.isReverse) {
+              userScore = 6 - userScore; // 反轉分數 (5->1, 4->2, 3->3, 2->4, 1->5)
+            }
+            
             sumsAndCounts[q.category].sum += userScore;
             sumsAndCounts[q.category].count += 1;
           }
         });
+        
         const resultArray = Object.entries(sumsAndCounts).map(([category, data]) => {
           const avg = data.count > 0 ? data.sum / data.count : 0;
           return { category, virtue: "", avg };
         });
+        
         // 配對 virtue
         resultArray.forEach((item) => {
           const group = characterStrengthQuestions.find((g) => g.category === item.category);
@@ -644,8 +656,69 @@
             item.virtue = group.virtue;
           }
         });
-        resultArray.sort((a, b) => b.avg - a.avg);
-        return resultArray;
+
+        // 實現分數相同時優先選擇不同美德的強項
+        const processedArray = sortWithDiverseVirtues(resultArray);
+        
+        return processedArray;
+      };
+
+      // 實現當分數相同時，優先選擇不同美德類型的強項
+      const sortWithDiverseVirtues = (inputArray) => {
+        // 先按平均分數降序排列
+        inputArray.sort((a, b) => b.avg - a.avg);
+        
+        // 用於保存最終排序結果
+        const finalResult = [];
+        // 用於追蹤已經添加的美德
+        const selectedVirtues = new Set();
+        
+        // 首先按照分數分組
+        const scoreGroups = {};
+        for (const item of inputArray) {
+          const scoreKey = item.avg.toFixed(3); // 使用固定精度來分組
+          if (!scoreGroups[scoreKey]) {
+            scoreGroups[scoreKey] = [];
+          }
+          scoreGroups[scoreKey].push(item);
+        }
+        
+        // 按分數從高到低處理每組
+        const sortedScores = Object.keys(scoreGroups).sort((a, b) => parseFloat(b) - parseFloat(a));
+        
+        for (const scoreKey of sortedScores) {
+          const sameScoreItems = scoreGroups[scoreKey];
+          
+          // 如果這組只有一個項目，直接添加
+          if (sameScoreItems.length === 1) {
+            finalResult.push(sameScoreItems[0]);
+            selectedVirtues.add(sameScoreItems[0].virtue);
+            continue;
+          }
+          
+          // 如果有多個項目具有相同分數，優先選擇尚未出現的美德
+          const newVirtueItems = sameScoreItems.filter(item => !selectedVirtues.has(item.virtue));
+          const repeatedVirtueItems = sameScoreItems.filter(item => selectedVirtues.has(item.virtue));
+          
+          // 對於新美德項目，按類別名稱字母順序排序（次要排序標準）
+          newVirtueItems.sort((a, b) => a.category.localeCompare(b.category));
+          
+          // 對於重複美德項目，也按類別名稱字母順序排序
+          repeatedVirtueItems.sort((a, b) => a.category.localeCompare(b.category));
+          
+          // 先添加新美德項目
+          for (const item of newVirtueItems) {
+            finalResult.push(item);
+            selectedVirtues.add(item.virtue);
+          }
+          
+          // 再添加重複美德項目
+          for (const item of repeatedVirtueItems) {
+            finalResult.push(item);
+          }
+        }
+        
+        return finalResult;
       };
 
       // 6大德平均
@@ -654,18 +727,30 @@
           acc[v.name] = { sum: 0, count: 0 };
           return acc;
         }, {});
+        
         allQuestions.forEach((q) => {
-          const userScore = answers[q.id];
+          let userScore = answers[q.id];
           if (typeof userScore === "number") {
+            // 處理反向題
+            const question = characterStrengthQuestions
+              .find(g => g.category === q.category)
+              ?.questions.find(item => item.id === q.id);
+            
+            if (question && question.isReverse) {
+              userScore = 6 - userScore; // 反轉分數
+            }
+            
             sumsAndCounts[q.virtue].sum += userScore;
             sumsAndCounts[q.virtue].count += 1;
           }
         });
+        
         const resultArray = virtuesInfo.map(({ name }) => {
           const { sum, count } = sumsAndCounts[name];
           const avg = count > 0 ? sum / count : 0;
           return { virtue: name, avg };
         });
+        
         resultArray.sort((a, b) => b.avg - a.avg);
         return resultArray;
       };
