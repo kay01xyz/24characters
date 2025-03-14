@@ -295,14 +295,183 @@
       },
     ];
 
-    // 攤平所有題目
-    const allQuestions = characterStrengthQuestions.flatMap((group) =>
-      group.questions.map((q) => ({
-        ...q,
-        category: group.category,
-        virtue: group.virtue,
-      }))
-    );
+    // 新增預先排序好的問題順序（避免同一個性格強項的問題連續出現）
+    // 透過交錯不同美德類別的問題來實現
+    const shuffledQuestionsOrder = [
+      // 第一頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 0},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 0},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 0},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 0},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 0},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 0},
+      
+      // 第二頁
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 0},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 0},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 0},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 0},
+      
+      // 第三頁
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 1},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 1},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 1},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 1},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 1},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 0},
+      
+      // 第四頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 1},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 1},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 1},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 1},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 2},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 2},
+      
+      // 第五頁
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 1},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 2},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 2},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 2},
+      
+      // 第六頁
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 2},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 2},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 2},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 3},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 3},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 1},
+      
+      // 第七頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 2},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 3},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 3},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 2},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 3},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 3},
+      
+      // 第八頁
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 3},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 4},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 4},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 3},
+      
+      // 第九頁
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 4},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 4},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 3},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 4},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 3},
+      
+      // 第十頁
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 3},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 3},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 4},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 3},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 3},
+      
+      // 第十一頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 4},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 3},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 4},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 4},
+      
+      // 第十二頁
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 4},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 4},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 4},
+    ];
+
+    // 根據預排序的順序創建問題的攤平列表
+    const getQuestionsFromOrder = (orderArray) => {
+      return orderArray.map(item => {
+        // 找到對應的問題組
+        const categoryGroup = characterStrengthQuestions.find(g => 
+          g.category === item.category && g.virtue === item.virtue
+        );
+        
+        if (!categoryGroup) {
+          return null;
+        }
+        
+        // 從問題組中獲取特定索引的問題
+        const question = categoryGroup.questions[item.index];
+        if (!question) {
+          return null;
+        }
+        
+        // 返回問題並附加類別和美德信息
+        return {
+          ...question,
+          category: categoryGroup.category,
+          virtue: categoryGroup.virtue
+        };
+      }).filter(q => q !== null); // 過濾掉可能的空值
+    };
+
+    // 攤平所有題目，使用預排序的順序
+    const allQuestions = getQuestionsFromOrder(shuffledQuestionsOrder);
 
     // 六大德
     const virtuesInfo = [
@@ -389,6 +558,17 @@
           ...prev,
           [questionId]: score,
         }));
+      };
+
+      // 清除當前頁面的所有答案
+      const handleClearPageAnswers = () => {
+        if (window.confirm("確定要清除此頁所有回答嗎？")) {
+          const updatedAnswers = { ...answers };
+          pageQuestions.forEach(question => {
+            delete updatedAnswers[question.id];
+          });
+          setAnswers(updatedAnswers);
+        }
       };
 
       // 分頁 - 下一頁
@@ -727,6 +907,36 @@
                       totalQuestions,
                       " 題"
                     )
+                  )
+                ),
+
+                // 清除當前頁面按鈕
+                React.createElement(
+                  "div",
+                  { className: "mb-6 flex justify-end" },
+                  React.createElement(
+                    "button",
+                    {
+                      onClick: handleClearPageAnswers,
+                      className: "text-red-500 text-sm flex items-center bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors"
+                    },
+                    React.createElement(
+                      "svg",
+                      {
+                        className: "w-4 h-4 mr-1",
+                        fill: "none",
+                        stroke: "currentColor",
+                        viewBox: "0 0 24 24",
+                        xmlns: "http://www.w3.org/2000/svg"
+                      },
+                      React.createElement("path", {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        strokeWidth: "2",
+                        d: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      })
+                    ),
+                    "清除此頁所有回答"
                   )
                 ),
 
